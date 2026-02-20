@@ -1,0 +1,47 @@
+{
+    "clientes": [
+        {
+            "nome": "teste",
+            "telefone": "123123132"
+        }
+    ],
+    "agendamentos": [
+        {
+            "cliente": {
+                "nome": "teste",
+                "telefone": "123123132"
+            },
+            "servico": "Massagem",
+            "data_hora": "2026-01-27 11:50",
+            "valor": 150.0,
+            "pagamento": "Pix"
+        }
+    ],
+    "servicos": [
+        {
+            "nome": "Massagem",
+            "valor": 150.0
+        }
+    ],
+    "tema": "dark",
+    "cores": {
+        "light": {
+            "cor_fundo": "#F5F6FA",
+            "cor_texto": "#2F3542",
+            "cor_input": "#FFFFFF",
+            "cor_borda": "#DCDDE1",
+            "cor_primaria": "#1E90FF",
+            "cor_primaria_hover": "#4682B4",
+            "cor_primaria_press": "#2F3542"
+        },
+        "dark": {
+            "cor_fundo": "#2E3440",
+            "cor_texto": "#D8DEE9",
+            "cor_input": "#3B4252",
+            "cor_borda": "#4C566A",
+            "cor_primaria": "#5E81AC",
+            "cor_primaria_hover": "#81A1C1",
+            "cor_primaria_press": "#4C566A"
+        }
+    }
+}
