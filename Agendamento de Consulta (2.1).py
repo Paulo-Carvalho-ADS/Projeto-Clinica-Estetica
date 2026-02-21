@@ -11,9 +11,18 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QDate, QTime, Qt
 from PyQt5.QtGui import QFont
 
-# ---------------- CAMINHO DO FICHEIRO ----------------
-PASTA_ATUAL = os.path.dirname(os.path.abspath(__file__))
-ARQUIVO_DADOS = os.path.join(PASTA_ATUAL, "clinica.json")
+# ---------------- Criação do diretorio de dados ---------------
+pasta_documentos = os.path.join(os.path.expanduser("~"), "Documents")
+
+# ---------------- Define o nome da pasta ----------------
+pasta_programa = os.path.join(pasta_documentos, "Sistema Clinica Estetica")
+
+# ---------------- Cria a pasta se não existir ----------------
+if not os.path.exists(pasta_programa):
+    os.makedirs(pasta_programa)
+
+# ---------------- Define o caminho do arquivo de dados ----------------
+ARQUIVO_DADOS = os.path.join(pasta_programa, "clinica.json")
 
 # ---------------- CONFIGURAÇÃO E ESTILOS ----------------
 DEFAULT_CONFIG = {

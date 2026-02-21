@@ -1,0 +1,11 @@
+# Ignora as pastas e arquivos gerados pelo PyInstaller
+/build/
+/dist/
+*.spec
+
+# Ignora arquivos temporários e de cache do Python
+__pycache__/
+*.pyc
+
+# Ignora o banco de dados local 
+*.json
