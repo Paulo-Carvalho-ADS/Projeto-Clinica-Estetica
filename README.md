@@ -46,6 +46,8 @@ Se você for um desenvolvedor e quiser testar o código na sua máquina, siga es
 ```bash
     python "Agendamento de Consulta (2.1).py"
 ```
+Ou apenas baixe o arquivo .exe na aba Releases e testem!
+Sintam-se à vontade para testar, quebrar o sistema e me dar feedbacks. Toda crítica construtiva é muito bem-vinda!
 
 ## 👨‍💻 Autor
 Desenvolvido por Paulo Amaral Carvalho
