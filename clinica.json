@@ -1,19 +1,37 @@
 {
     "clientes": [
         {
-            "nome": "teste",
-            "telefone": "123123132"
+            "nome": "Julia",
+            "telefone": "00 12345678"
+        },
+        {
+            "nome": "Maria",
+            "telefone": "00 12345678"
+        },
+        {
+            "nome": "Ana",
+            "telefone": "00 12345678"
         }
     ],
     "agendamentos": [
         {
             "cliente": {
-                "nome": "teste",
-                "telefone": "123123132"
+                "nome": "Julia",
+                "telefone": "00 12345678"
             },
             "servico": "Massagem",
-            "data_hora": "2026-01-27 11:50",
+            "data_hora": "2026-02-21 09:58",
             "valor": 150.0,
+            "pagamento": "Pix"
+        },
+        {
+            "cliente": {
+                "nome": "Ana",
+                "telefone": "00 12345678"
+            },
+            "servico": "Limpeza Facial",
+            "data_hora": "2026-02-21 14:30",
+            "valor": 70.0,
             "pagamento": "Pix"
         }
     ],
@@ -21,6 +39,14 @@
         {
             "nome": "Massagem",
             "valor": 150.0
+        },
+        {
+            "nome": "Limpeza Facial",
+            "valor": 70.0
+        },
+        {
+            "nome": "Massagem",
+            "valor": 50.0
         }
     ],
     "tema": "dark",

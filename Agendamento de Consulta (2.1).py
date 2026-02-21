@@ -1,6 +1,7 @@
 import sys
 import datetime
 import json
+import os
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QPushButton,
     QLineEdit, QListWidget, QTabWidget, QFormLayout, QDateEdit,
@@ -9,6 +10,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QDate, QTime, Qt
 from PyQt5.QtGui import QFont
+
+# ---------------- CAMINHO DO FICHEIRO ----------------
+PASTA_ATUAL = os.path.dirname(os.path.abspath(__file__))
+ARQUIVO_DADOS = os.path.join(PASTA_ATUAL, "clinica.json")
 
 # ---------------- CONFIGURAÇÃO E ESTILOS ----------------
 DEFAULT_CONFIG = {
@@ -93,7 +98,7 @@ class ClinicaEsteticaApp(QWidget):
     def __init__(self, app):
         super().__init__()
         self.app = app
-        self.setWindowTitle("Clínica Estética - Sistema da Tati")
+        self.setWindowTitle("Clínica Estética - Agendamento de Consultas")
         self.resize(800, 600)
         
         # Dados e Configurações
@@ -424,12 +429,12 @@ class ClinicaEsteticaApp(QWidget):
             "tema": self.current_theme,
             "cores": self.config["cores"]
         }
-        with open("clinica.json", "w", encoding="utf-8") as f:
+        with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
 
     def load_data(self):
         try:
-            with open("clinica.json", "r", encoding="utf-8") as f:
+            with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 self.clientes = [Cliente.from_dict(c) for c in data.get("clientes", [])]
                 self.agendamentos = [Agendamento.from_dict(a) for a in data.get("agendamentos", [])]
