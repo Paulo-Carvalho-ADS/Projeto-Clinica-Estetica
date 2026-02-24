@@ -1,3 +1,4 @@
+import sqlite3
 import sys
 import datetime
 import json
@@ -22,7 +23,47 @@ if not os.path.exists(pasta_programa):
     os.makedirs(pasta_programa)
 
 # ---------------- Define o caminho do arquivo de dados ----------------
-ARQUIVO_DADOS = os.path.join(pasta_programa, "clinica.json")
+ARQUIVO_DADOS = os.path.join(pasta_programa, "config.json")
+
+# criar função de conexao segura com o banco de dados
+def conectar_banco():
+    caminho_documentos = os.path.expanduser("~/Documents")
+    pasta_sistema = os.path.join(caminho_documentos, "Sistema Clinica Estetica")
+    os.makedirs(pasta_sistema, exist_ok=True)
+    caminho_banco = os.path.join(pasta_sistema, "banco_clinica.db")
+
+    conexao = sqlite3.connect(caminho_banco)
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS clientes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            telefone TEXT NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS servicos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            preco REAL NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS agendamentos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome_cliente TEXT NOT NULL,
+            servico TEXT NOT NULL,
+            valor REAL NOT NULL,
+            forma_pagamento TEXT NOT NULL,
+            data_hora TEXT NOT NULL
+        )
+    """)
+
+    conexao.commit()
+    return conexao
 
 # ---------------- CONFIGURAÇÃO E ESTILOS ----------------
 DEFAULT_CONFIG = {
@@ -119,6 +160,7 @@ class ClinicaEsteticaApp(QWidget):
         self.indice_agendamento_em_edicao = None 
 
         self.load_data()
+        self.carregar_do_banco()  # Carrega os dados do banco de dados
         self.setup_ui()
         self.apply_theme()
 
@@ -230,8 +272,17 @@ class ClinicaEsteticaApp(QWidget):
     def cadastrar_cliente(self):
         nome, fone = self.input_nome.text().strip(), self.input_telefone.text().strip()
         if not nome or not fone: return
+        
+        conexao = conectar_banco()
+        cursor = conexao.cursor()
+        cursor.execute("INSERT INTO clientes (nome, telefone) VALUES (?, ?)", (nome, fone))
+        conexao.commit()
+        conexao.close()
+        
         self.clientes.append(Cliente(nome, fone))
-        self.input_nome.clear(); self.input_telefone.clear()
+        self.input_nome.clear()
+        self.input_telefone.clear()
+        
         self.save_and_refresh()
 
     def remover_cliente(self):
@@ -244,6 +295,12 @@ class ClinicaEsteticaApp(QWidget):
             if ag.cliente.nome == cliente_alvo.nome and ag.cliente.telefone == cliente_alvo.telefone:
                 QMessageBox.warning(self, "Erro", "Cliente possui agendamentos!")
                 return
+        conexao = conectar_banco()
+        cursor = conexao.cursor()
+        cursor.execute("DELETE FROM clientes WHERE nome = ? AND telefone = ?", (cliente_alvo.nome, cliente_alvo.telefone))
+        conexao.commit()
+        conexao.close()
+
         del self.clientes[row]
         self.save_and_refresh()
 
@@ -251,13 +308,29 @@ class ClinicaEsteticaApp(QWidget):
         nome = self.input_servico_nome.text().strip()
         valor = self.input_servico_valor.value()
         if not nome or valor <= 0: return
+        conexao = conectar_banco()
+        cursor = conexao.cursor()
+        cursor.execute("INSERT INTO servicos (nome, preco) VALUES (?, ?)", (nome, valor))
+        conexao.commit()
+        conexao.close()
+
         self.servicos.append(Servico(nome, valor))
-        self.input_servico_nome.clear(); self.input_servico_valor.setValue(0)
+        self.input_servico_nome.clear()
+        self.input_servico_valor.setValue(0)
+
         self.save_and_refresh()
 
     def remover_servico(self):
         row = self.lista_servicos.currentRow()
         if row != -1:
+            servico_alvo = self.servicos[row]
+
+            conexao = conectar_banco()
+            cursor = conexao.cursor()
+            cursor.execute("DELETE FROM servicos WHERE nome_servico = ? AND preco = ?", (servico_alvo.nome, servico_alvo.valor))
+            conexao.commit()
+            conexao.close()
+
             del self.servicos[row]
             self.save_and_refresh()
 
@@ -332,7 +405,6 @@ class ClinicaEsteticaApp(QWidget):
         # Coleta de dados
         idx_cli = self.combo_clientes.currentIndex()
         idx_serv = self.combo_servicos.currentIndex()
-        
         if idx_cli == -1 or idx_serv == -1: return
 
         cliente = self.clientes[idx_cli]
@@ -343,6 +415,7 @@ class ClinicaEsteticaApp(QWidget):
         data = self.input_data.date().toPyDate()
         hora = self.input_hora.time().toPyTime()
         data_hora = datetime.datetime.combine(data, hora)
+        data_hora_str = data_hora.strftime("%Y-%m-%d %H:%M")
 
         # Validação de Conflito
         for i, ag in enumerate(self.agendamentos):
@@ -354,15 +427,31 @@ class ClinicaEsteticaApp(QWidget):
 
         novo_agendamento = Agendamento(cliente, servico_nome, data_hora, valor, pagamento)
 
+        conexao = conectar_banco()
+        cursor = conexao.cursor()
+
         if self.indice_agendamento_em_edicao is None:
+            cursor.execute("INSERT INTO agendamentos (nome_cliente, servico, valor, forma_pagamento, data_hora) VALUES (?, ?, ?, ?, ?)",
+                           (cliente.nome, servico_nome, valor, pagamento, data_hora_str))
+            
             self.agendamentos.append(novo_agendamento)
-            msg = "Agendado com sucesso!"
+            msg = "Agendamento criado!"
         else:
+            agendamento_antigo = self.agendamentos[self.indice_agendamento_em_edicao]
+            data_hora_antiga_str = agendamento_antigo.data_hora.strftime("%Y-%m-%d %H:%M")
+
+            cursor.execute("""
+                UPDATE agendamentos 
+                SET nome_cliente = ?, servico = ?, valor = ?, forma_pagamento = ?, data_hora = ?
+                WHERE nome_cliente = ? AND data_hora = ?
+            """, (cliente.nome, servico_nome, valor, pagamento, data_hora_str, agendamento_antigo.cliente.nome, data_hora_antiga_str))
             self.agendamentos[self.indice_agendamento_em_edicao] = novo_agendamento
             self.indice_agendamento_em_edicao = None
             self.btn_agendar.setText("✅ Agendar Atendimento")
             self.btn_editar.setEnabled(True)
             msg = "Agendamento atualizado!"
+        conexao.commit()
+        conexao.close()
 
         self.agendamentos.sort(key=lambda x: x.data_hora)
         self.save_and_refresh()
@@ -394,6 +483,15 @@ class ClinicaEsteticaApp(QWidget):
     def remover_agendamento(self):
         row = self.lista_agendamentos.currentRow()
         if row != -1 and QMessageBox.question(self, "Confirmação", "Remover este agendamento?", QMessageBox.Yes|QMessageBox.No) == QMessageBox.Yes:
+            ag = self.agendamentos[row]
+            data_hora_str = ag.data_hora.strftime("%Y-%m-%d %H:%M")
+            
+            conexao = conectar_banco()
+            cursor = conexao.cursor()
+            cursor.execute("DELETE FROM agendamentos WHERE nome_cliente = ? AND data_hora = ?", (ag.cliente.nome, data_hora_str))
+            conexao.commit()
+            conexao.close()
+            
             del self.agendamentos[row]
             self.save_and_refresh()
 
@@ -431,10 +529,9 @@ class ClinicaEsteticaApp(QWidget):
             self.lista_agendamentos.addItem(item)
 
     def save_data(self):
+        # Agora o JSON salva APENAS configurações visuais.
+        # Os dados do banco (clientes, etc) não entram mais aqui.
         data = {
-            "clientes": [c.to_dict() for c in self.clientes],
-            "agendamentos": [a.to_dict() for a in self.agendamentos],
-            "servicos": [s.to_dict() for s in self.servicos],
             "tema": self.current_theme,
             "cores": self.config["cores"]
         }
@@ -442,15 +539,50 @@ class ClinicaEsteticaApp(QWidget):
             json.dump(data, f, indent=4, ensure_ascii=False)
 
     def load_data(self):
+        # Tenta carregar as configurações de tema salvas
         try:
             with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                self.clientes = [Cliente.from_dict(c) for c in data.get("clientes", [])]
-                self.agendamentos = [Agendamento.from_dict(a) for a in data.get("agendamentos", [])]
-                self.servicos = [Servico.from_dict(s) for s in data.get("servicos", [])]
+                
+                # Carrega o tema salvo (se não tiver, usa 'light')
                 self.current_theme = data.get("tema", "light")
+                if "cores" in data:
+                    self.config["cores"] = data["cores"]
+                    
         except (FileNotFoundError, json.JSONDecodeError):
-            pass 
+            # Se o arquivo não existir ou estiver corrompido,ele usará o DEFAULT_CONFIG e criará o arquivo no primeiro save.
+            pass
+
+    def carregar_do_banco(self):
+        conexao = conectar_banco()
+        cursor = conexao.cursor()
+        
+        cursor.execute("SELECT nome, telefone FROM clientes")
+        self.clientes = [Cliente(linha[0], linha[1]) for linha in cursor.fetchall()]
+
+        cursor.execute("SELECT nome, preco FROM servicos")
+        self.servicos = [Servico(linha[0], linha[1]) for linha in cursor.fetchall()]
+
+        cursor.execute("SELECT nome_cliente, servico, valor, forma_pagamento, data_hora FROM agendamentos")
+        agendamentos_db = cursor.fetchall()
+        self.agendamentos = []
+        for linha in agendamentos_db:
+            nome_cli = linha[0]
+            nome_serv = linha[1]
+            valor_ag = linha[2]
+            pagamento_ag = linha[3]
+            data_hora_str = linha[4]
+            
+            data_hora_obj = datetime.datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
+            cliente_obj = next((c for c in self.clientes if c.nome == nome_cli), Cliente(nome_cli, ""))
+            self.agendamentos.append(Agendamento(cliente_obj, nome_serv, data_hora_obj, valor_ag, pagamento_ag))
+
+        conexao.close()
+
+
+
+conexao_teste = conectar_banco()  # Testa a conexão com o banco de dados
+conexao_teste.close()  # Fecha a conexão de teste
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
