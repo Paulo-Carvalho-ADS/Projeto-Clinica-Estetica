@@ -1,4 +1,5 @@
 import sqlite3
+import shutil
 import sys
 import datetime
 import json
@@ -64,6 +65,30 @@ def conectar_banco():
 
     conexao.commit()
     return conexao
+
+def fazer_backup_banco():
+    try:
+        caminho_documentos = os.path.expanduser("~/Documents")
+        pasta_sistema = os.path.join(caminho_documentos, "Sistema Clinica Estetica")
+        caminho_banco = os.path.join(pasta_sistema, "banco_clinica.db")
+
+        if not os.path.exists(caminho_banco):
+            print("Arquivo de banco de dados não encontrado para backup.")
+            return False
+
+        pasta_backup = os.path.join(pasta_sistema, "Backups")
+        os.makedirs(pasta_backup, exist_ok=True)
+
+        data_atual = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M")
+        nome_arquivo_backup = f"backup_clinica_{data_atual}.db"
+        caminho_destino = os.path.join(pasta_backup, nome_arquivo_backup)
+
+        shutil.copy2(caminho_banco, caminho_destino)
+        return True
+        
+    except Exception as e:
+        print(f"Erro ao criar backup: {e}")
+        return False
 
 # ---------------- CONFIGURAÇÃO E ESTILOS ----------------
 DEFAULT_CONFIG = {
@@ -194,6 +219,18 @@ class ClinicaEsteticaApp(QWidget):
         # --- CORREÇÃO AQUI ---
         # Só chamamos a atualização DEPOIS de criar ambas as abas
         self.atualizar_listas_visuais()
+
+    def closeEvent(self, event):
+        print("Iniciando backup automático...")
+
+        sucesso_no_backup = fazer_backup_banco()
+
+        if sucesso_no_backup:
+            QMessageBox.information(self, "Encerrando Sistema", "✅ Backup criado com sucesso!")
+        else:
+            QMessageBox.warning(self, "Aviso de Segurança", "❌ Atenção: Houve uma falha ao realizar o backup automático!\nO programa será fechado, mas verifique o armazenamento do seu computador.")
+        
+        event.accept()
 
     # ---------------- LÓGICA DE TEMA ----------------
     def toggle_theme(self):
@@ -327,7 +364,7 @@ class ClinicaEsteticaApp(QWidget):
 
             conexao = conectar_banco()
             cursor = conexao.cursor()
-            cursor.execute("DELETE FROM servicos WHERE nome_servico = ? AND preco = ?", (servico_alvo.nome, servico_alvo.valor))
+            cursor.execute("DELETE FROM servicos WHERE nome = ? AND preco = ?", (servico_alvo.nome, servico_alvo.valor))
             conexao.commit()
             conexao.close()
 
